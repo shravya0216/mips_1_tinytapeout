@@ -1,46 +1,38 @@
 `timescale 1ns / 1ps
 
-// 256 x 32-bit data memory.
-// CPU addressing remains WORD-indexed to preserve the existing MIPS program:
-// LW/SW address 7 accesses DM[7], address 20 accesses DM[20], etc.
-module data_memory(
-    input        clk,
+module instruction_memory(
     input        rst,
-    input        Mem_rd,
-    input        Mem_write,
-    input [31:0] rd_addr,
-    input [31:0] write_data,
-    output reg [31:0] rd_data,
+    input        clk,
+    input [31:0] PC_out,
+    output [31:0] instruction_code,
     input        prog_we,
     input [7:0]  prog_addr,
     input [31:0] prog_wdata,
     output [31:0] prog_rdata
 );
-    integer i;
+    // Packed equivalent of the original 1024-entry x 8-bit byte memory.
+    reg [8191:0] IM;
 
-    // Same logical storage as the original 256-entry x 32-bit array.
-    // Entry N occupies bits (N*32) through (N*32+31).
-    reg [8191:0] DM;
+    assign instruction_code = {
+        IM[PC_out[9:0] * 8 +: 8],
+        IM[(PC_out[9:0] + 10'd1) * 8 +: 8],
+        IM[(PC_out[9:0] + 10'd2) * 8 +: 8],
+        IM[(PC_out[9:0] + 10'd3) * 8 +: 8]
+    };
 
-    // I2C readback of DM[prog_addr].
-    assign prog_rdata = DM[prog_addr * 32 +: 32];
+    assign prog_rdata = {
+        IM[{prog_addr,2'b00} * 8 +: 8],
+        IM[({prog_addr,2'b00} + 10'd1) * 8 +: 8],
+        IM[({prog_addr,2'b00} + 10'd2) * 8 +: 8],
+        IM[({prog_addr,2'b00} + 10'd3) * 8 +: 8]
+    };
 
     always @(posedge clk) begin
-        if (rst) begin
-            for (i = 0; i <= 255; i = i + 1)
-                DM[i * 32 +: 32] <= 32'd0;
-        end else begin
-            if (Mem_write)
-                DM[rd_addr[7:0] * 32 +: 32] <= write_data;
-            if (prog_we)
-                DM[prog_addr * 32 +: 32] <= prog_wdata;
+        if (prog_we) begin
+            IM[{prog_addr,2'b00} * 8 +: 8] <= prog_wdata[31:24];
+            IM[({prog_addr,2'b00} + 10'd1) * 8 +: 8] <= prog_wdata[23:16];
+            IM[({prog_addr,2'b00} + 10'd2) * 8 +: 8] <= prog_wdata[15:8];
+            IM[({prog_addr,2'b00} + 10'd3) * 8 +: 8] <= prog_wdata[7:0];
         end
-    end
-
-    always @(*) begin
-        if (Mem_rd)
-            rd_data = DM[rd_addr[7:0] * 32 +: 32];
-        else
-            rd_data = 32'b0;
     end
 endmodule
