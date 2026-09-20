@@ -16,23 +16,26 @@ module reg_file(
     output [31:0] prog_rdata
 );
     integer i;
-    reg [31:0] RF [31:0];
 
-    assign D_1 = (Reg_write && (rd == rs) && (rd != 5'd0)) ? write_data : RF[rs];
-    assign D_2 = (Reg_write && (rd == rt) && (rd != 5'd0)) ? write_data : RF[rt];
+    // Same logical storage as the original 32-entry x 32-bit array.
+    // Entry N occupies bits (N*32) through (N*32+31).
+    reg [1023:0] RF;
+
+    assign D_1 = (Reg_write && (rd == rs) && (rd != 5'd0)) ? write_data : RF[rs * 32 +: 32];
+    assign D_2 = (Reg_write && (rd == rt) && (rd != 5'd0)) ? write_data : RF[rt * 32 +: 32];
 
     // I2C readback of register prog_addr.
-    assign prog_rdata = RF[prog_addr];
+    assign prog_rdata = RF[prog_addr * 32 +: 32];
 
     always @(posedge clk) begin
         if (rst) begin
             for (i = 0; i <= 31; i = i + 1)
-                RF[i] <= i;
+                RF[i * 32 +: 32] <= i;
         end else begin
             if (prog_we && (prog_addr != 5'd0))
-                RF[prog_addr] <= prog_wdata;
+                RF[prog_addr * 32 +: 32] <= prog_wdata;
             else if (Reg_write && rd != 5'd0)
-                RF[rd] <= write_data;
+                RF[rd * 32 +: 32] <= write_data;
         end
     end
 endmodule
