@@ -1,56 +1,89 @@
 # Tiny Tapeout project information
 project:
-  title:        ""      # Project title
-  author:       ""      # Your name
-  discord:      ""      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  ""      # One line description of what your project does
-  language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  title:        "I2C-programmable 5-stage pipelined MIPS"   # Project title
+  author:       "Your Name"                                  # <-- put your name here
+  discord:      ""                                            # <-- optional
+  description:  "5-stage pipelined MIPS CPU (forwarding, hazard stalling, branch prediction) that is loaded and controlled over I2C: an external MCU writes instruction memory, register file, data memory and a target PC, then RUN starts execution; the CPU halts and asserts an LED when it reaches the target PC."
+  language:     "Verilog"
+  clock_hz:     10000000        # pick the clock you plan to run at; adjust as needed
 
-  # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
+  # A single tile is about 167x108 uM. This design's memories were resized
+  # to fit inside a small budget, but it still has more flip-flops than a
+  # typical 1x1 TT project (5-stage pipeline registers + IMEM/DMEM/REGFILE +
+  # branch predictor tables). Check the utilization report from the GitHub
+  # Action after pushing; bump this up (2x2, 3x2, ...) if it still doesn't fit.
+  tiles: "2x2"
 
-  # Your top module name must start with "tt_um_". Make it unique by including your github username:
-  top_module:  "tt_um_example"
+  # Your top module name must start with "tt_um_". Make it unique by
+  # including your github username, e.g. tt_um_yourname_mips_i2c.
+  top_module:  "tt_um_mips_i2c"
 
-  # List your project's source files here.
-  # Source files must be in ./src and you must list each source file separately, one per line.
-  # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
+  # List your project's source files here. Source files must be in ./src
+  # and you must list each source file separately, one per line:
   source_files:
-    - "project.v"
+    - "tt_um_mips_i2c.v"
+    - "top.v"
+    - "i2c_slave_mmio.v"
+    - "mmio_decoder.v"
+    - "instruction_memory.v"
+    - "data_memory.v"
+    - "reg_file.v"
+    - "Pc.v"
+    - "IF_ID_register.v"
+    - "ID_EX_register.v"
+    - "EX_MEM_register.v"
+    - "M_WB_register.v"
+    - "control_unit.v"
+    - "ALU.v"
+    - "comparator.v"
+    - "Sign_extender.v"
+    - "Forwarding_unit.v"
+    - "Forward_rs.v"
+    - "forward_rt.v"
+    - "Flushing_unit.v"
+    - "branching_unit.v"
+    - "stalling_unit.v"
+    - "PHT.v"
+    - "BHT.v"
+    - "BTB.v"
+    - "Xor_result.v"
+    - "mux_1.v"
+    - "mux_2.v"
+    - "mux_1_execution.v"
+    - "mux_2_execution.v"
+    - "mux_3_execution.v"
+    - "Write_back_mux.v"
 
-# The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
-# This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
-pinout:
-  # Inputs
-  ui[0]: ""
-  ui[1]: ""
-  ui[2]: ""
-  ui[3]: ""
-  ui[4]: ""
-  ui[5]: ""
-  ui[6]: ""
-  ui[7]: ""
-
-  # Outputs
-  uo[0]: ""
-  uo[1]: ""
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: ""
-  uo[7]: ""
-
-  # Bidirectional pins
-  uio[0]: ""
-  uio[1]: ""
-  uio[2]: ""
-  uio[3]: ""
-  uio[4]: ""
-  uio[5]: ""
-  uio[6]: ""
-  uio[7]: ""
+  # The pinout of your project. Leave unused pins blank. DO NOT delete or
+  # add any pins.
+  pinout:
+    # Inputs
+    ui[0]: "scl (I2C clock, from MCU)"
+    ui[1]: ""
+    ui[2]: ""
+    ui[3]: ""
+    ui[4]: ""
+    ui[5]: ""
+    ui[6]: ""
+    ui[7]: ""
+    # Outputs
+    uo[0]: "led (DONE: high once the CPU halts at TARGET_PC)"
+    uo[1]: ""
+    uo[2]: ""
+    uo[3]: ""
+    uo[4]: ""
+    uo[5]: ""
+    uo[6]: ""
+    uo[7]: ""
+    # Bidirectional pins
+    uio[0]: "sda (I2C data, open-drain, needs an external pull-up)"
+    uio[1]: ""
+    uio[2]: ""
+    uio[3]: ""
+    uio[4]: ""
+    uio[5]: ""
+    uio[6]: ""
+    uio[7]: ""
 
 # Do not change!
 yaml_version: 6
